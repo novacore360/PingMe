@@ -4,7 +4,9 @@ import com.messagingapp.SupabaseClient
 import com.messagingapp.data.models.*
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
-import io.github.jan.supabase.realtime.*
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.realtime.createChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
@@ -186,7 +188,7 @@ class MessageRepository {
     }
 
     fun listenToMessages(conversationId: String): Flow<Message> = callbackFlow {
-        val channel = client.realtime.channel("messages:$conversationId")
+        val channel = client.realtime.createChannel("messages:$conversationId")
         
         channel.subscribe()
         
@@ -196,7 +198,7 @@ class MessageRepository {
         ) { action ->
             if (action is PostgresAction.Insert) {
                 runCatching {
-                    val msg = action.decodeRecord<Message>()
+                    val msg = action.decodeRecordAs<Message>()
                     if (msg.conversationId == conversationId && msg.deletedAt == null) {
                         trySend(msg)
                     }
@@ -211,7 +213,7 @@ class MessageRepository {
     }
 
     fun listenToTyping(conversationId: String): Flow<TypingStatus> = callbackFlow {
-        val channel = client.realtime.channel("typing:$conversationId")
+        val channel = client.realtime.createChannel("typing:$conversationId")
         
         channel.subscribe()
         
@@ -221,7 +223,7 @@ class MessageRepository {
         ) { action ->
             if (action is PostgresAction.Update || action is PostgresAction.Insert) {
                 runCatching {
-                    val typing = action.decodeRecord<TypingStatus>()
+                    val typing = action.decodeRecordAs<TypingStatus>()
                     if (typing.conversationId == conversationId) {
                         trySend(typing)
                     }
@@ -236,7 +238,7 @@ class MessageRepository {
     }
 
     fun listenToAllMessages(userId: String): Flow<Message> = callbackFlow {
-        val channel = client.realtime.channel("all_messages:$userId")
+        val channel = client.realtime.createChannel("all_messages:$userId")
         
         channel.subscribe()
         
@@ -246,7 +248,7 @@ class MessageRepository {
         ) { action ->
             if (action is PostgresAction.Insert) {
                 runCatching {
-                    val msg = action.decodeRecord<Message>()
+                    val msg = action.decodeRecordAs<Message>()
                     if (msg.senderId != userId && msg.deletedAt == null) {
                         trySend(msg)
                     }
