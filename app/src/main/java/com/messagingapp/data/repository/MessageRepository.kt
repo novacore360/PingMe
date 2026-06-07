@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.serialization.json.*
+import java.time.Instant
 
 class MessageRepository {
 
@@ -72,7 +73,7 @@ class MessageRepository {
                 order("created_at", Order.ASCENDING)
             }
             .decodeList<Message>()
-            .filter { it.deletedAt == null } // Filter out deleted messages
+            .filter { it.deletedAt == null }
     }
 
     suspend fun sendMessage(
@@ -97,7 +98,6 @@ class MessageRepository {
             .decodeList<Message>()
             .first()
 
-        // Update conversation last message
         client.postgrest["conversations"]
             .update(buildJsonObject {
                 put("last_message", content)
@@ -119,7 +119,7 @@ class MessageRepository {
     suspend fun deleteMessage(messageId: String): Result<Unit> = runCatching {
         client.postgrest["messages"]
             .update(buildJsonObject {
-                put("deleted_at", kotlinx.datetime.Clock.System.now().toString())
+                put("deleted_at", Instant.now().toString())
                 put("content", "This message was deleted")
             }) {
                 filter { eq("id", messageId) }
