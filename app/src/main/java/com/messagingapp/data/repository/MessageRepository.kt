@@ -68,11 +68,11 @@ class MessageRepository {
             .select {
                 filter {
                     eq("conversation_id", conversationId)
-                    isNull("deleted_at")
                 }
                 order("created_at", Order.ASCENDING)
             }
             .decodeList<Message>()
+            .filter { it.deletedAt == null } // Filter out deleted messages
     }
 
     suspend fun sendMessage(
@@ -187,48 +187,76 @@ class MessageRepository {
 
     fun listenToMessages(conversationId: String): Flow<Message> = callbackFlow {
         val channel = client.realtime.channel("messages:$conversationId")
-        val subscription = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "messages"
-            filter = "conversation_id=eq.$conversationId"
-        }
+        
         channel.subscribe()
-        subscription.collect { action ->
-            runCatching {
-                val msg = action.decodeRecord<Message>()
-                trySend(msg)
+        
+        val callback = channel.addPostgresChangeSubscription(
+            schema = "public",
+            table = "messages"
+        ) { action ->
+            if (action is PostgresAction.Insert) {
+                runCatching {
+                    val msg = action.decodeRecord<Message>()
+                    if (msg.conversationId == conversationId && msg.deletedAt == null) {
+                        trySend(msg)
+                    }
+                }
             }
         }
-        awaitClose { channel.unsubscribe() }
+        
+        awaitClose {
+            callback.cancel()
+            channel.unsubscribe()
+        }
     }
 
     fun listenToTyping(conversationId: String): Flow<TypingStatus> = callbackFlow {
         val channel = client.realtime.channel("typing:$conversationId")
-        val subscription = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
-            table = "typing_status"
-            filter = "conversation_id=eq.$conversationId"
-        }
+        
         channel.subscribe()
-        subscription.collect { action ->
-            runCatching {
-                val typing = action.decodeRecord<TypingStatus>()
-                trySend(typing)
+        
+        val callback = channel.addPostgresChangeSubscription(
+            schema = "public",
+            table = "typing_status"
+        ) { action ->
+            if (action is PostgresAction.Update || action is PostgresAction.Insert) {
+                runCatching {
+                    val typing = action.decodeRecord<TypingStatus>()
+                    if (typing.conversationId == conversationId) {
+                        trySend(typing)
+                    }
+                }
             }
         }
-        awaitClose { channel.unsubscribe() }
+        
+        awaitClose {
+            callback.cancel()
+            channel.unsubscribe()
+        }
     }
 
     fun listenToAllMessages(userId: String): Flow<Message> = callbackFlow {
         val channel = client.realtime.channel("all_messages:$userId")
-        val subscription = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "messages"
-        }
+        
         channel.subscribe()
-        subscription.collect { action ->
-            runCatching {
-                val msg = action.decodeRecord<Message>()
-                if (msg.senderId != userId) trySend(msg)
+        
+        val callback = channel.addPostgresChangeSubscription(
+            schema = "public",
+            table = "messages"
+        ) { action ->
+            if (action is PostgresAction.Insert) {
+                runCatching {
+                    val msg = action.decodeRecord<Message>()
+                    if (msg.senderId != userId && msg.deletedAt == null) {
+                        trySend(msg)
+                    }
+                }
             }
         }
-        awaitClose { channel.unsubscribe() }
+        
+        awaitClose {
+            callback.cancel()
+            channel.unsubscribe()
+        }
     }
 }
