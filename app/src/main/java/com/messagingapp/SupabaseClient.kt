@@ -7,9 +7,14 @@ import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 
 object SupabaseClient {
+    // IMPORTANT: Replace with your actual Supabase anon key
+    // Get it from: Supabase Dashboard > Project Settings > API > Project API keys > anon public
+    private const val SUPABASE_URL = "https://ratyoralhhbtqamyjglf.supabase.co"
+    private const val SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE" // Replace this!
+    
     val client = createSupabaseClient(
-        supabaseUrl = "https://ratyoralhhbtqamyjglf.supabase.co",
-        supabaseKey = "sb_publishable_sW-_hInNqPu4uUEJv8QxTA_83eQHyTX"
+        supabaseUrl = SUPABASE_URL,
+        supabaseKey = SUPABASE_ANON_KEY
     ) {
         install(Auth)
         install(Postgrest)
