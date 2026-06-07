@@ -3,7 +3,6 @@ package com.messagingapp.ui.theme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -11,7 +10,6 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -122,8 +120,7 @@ fun AppTheme(content: @Composable () -> Unit) {
 }
 
 fun Modifier.glassCard(
-    cornerRadius: Dp = 16.dp,
-    alpha: Float = 0.12f
+    cornerRadius: Dp = 16.dp
 ): Modifier = this
     .clip(RoundedCornerShape(cornerRadius))
     .background(
@@ -171,7 +168,7 @@ fun GlassContainer(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 16.dp,
     padding: Dp = 0.dp,
-    content: @Composable BoxScope.() -> Unit
+    content: @Composable () -> Unit
 ) {
     Box(
         modifier = modifier
