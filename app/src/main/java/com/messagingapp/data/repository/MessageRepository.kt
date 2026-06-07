@@ -5,13 +5,17 @@ import com.messagingapp.data.models.*
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.realtime.PostgresAction
-import io.github.jan.supabase.realtime.Realtime
-import io.github.jan.supabase.realtime.createChannel
+import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.serialization.json.*
-import java.time.Instant
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.format.DateTimeFormat
+import kotlinx.datetime.format.DateTimeFormatter
+import kotlinx.datetime.LocalDateTime
 
 class MessageRepository {
 
@@ -119,9 +123,10 @@ class MessageRepository {
     }
 
     suspend fun deleteMessage(messageId: String): Result<Unit> = runCatching {
+        val now = Clock.System.now().toString()
         client.postgrest["messages"]
             .update(buildJsonObject {
-                put("deleted_at", Instant.now().toString())
+                put("deleted_at", now)
                 put("content", "This message was deleted")
             }) {
                 filter { eq("id", messageId) }
@@ -188,7 +193,7 @@ class MessageRepository {
     }
 
     fun listenToMessages(conversationId: String): Flow<Message> = callbackFlow {
-        val channel = client.realtime.createChannel("messages:$conversationId")
+        val channel = client.realtime.channel("messages:$conversationId")
         
         channel.subscribe()
         
@@ -213,7 +218,7 @@ class MessageRepository {
     }
 
     fun listenToTyping(conversationId: String): Flow<TypingStatus> = callbackFlow {
-        val channel = client.realtime.createChannel("typing:$conversationId")
+        val channel = client.realtime.channel("typing:$conversationId")
         
         channel.subscribe()
         
@@ -238,7 +243,7 @@ class MessageRepository {
     }
 
     fun listenToAllMessages(userId: String): Flow<Message> = callbackFlow {
-        val channel = client.realtime.createChannel("all_messages:$userId")
+        val channel = client.realtime.channel("all_messages:$userId")
         
         channel.subscribe()
         
