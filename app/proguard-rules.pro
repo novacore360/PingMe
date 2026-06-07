@@ -1,0 +1,4 @@
+-keep class com.messagingapp.data.models.** { *; }
+-keepattributes *Annotation*
+-keepattributes Signature
+-dontwarn kotlinx.serialization.**
