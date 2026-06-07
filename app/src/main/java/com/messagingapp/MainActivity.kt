@@ -29,9 +29,12 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
-    // Determine initial screen based on session
     val isLoggedIn = remember {
-        SupabaseClient.client.auth.currentUserOrNull() != null
+        try {
+            SupabaseClient.client.auth.currentUserOrNull() != null
+        } catch (e: Exception) {
+            false
+        }
     }
 
     var screen by remember {
@@ -40,9 +43,13 @@ fun AppNavigation() {
 
     LaunchedEffect(Unit) {
         if (isLoggedIn) {
-            val authRepo = com.messagingapp.data.repository.AuthRepository()
-            val hasProfile = authRepo.hasProfile()
-            screen = if (hasProfile) "home" else "setup"
+            try {
+                val authRepo = com.messagingapp.data.repository.AuthRepository()
+                val hasProfile = authRepo.hasProfile()
+                screen = if (hasProfile) "home" else "setup"
+            } catch (e: Exception) {
+                screen = "auth"
+            }
         }
     }
 
@@ -61,7 +68,7 @@ fun AppNavigation() {
             HomeScreen(onLogout = { screen = "auth" })
         }
         else -> {
-            // checking — show nothing or splash
+            // checking
         }
     }
 }
